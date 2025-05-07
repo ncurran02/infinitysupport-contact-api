@@ -7,8 +7,13 @@
 	"name": "contact-api",
 	"main": "src/index.ts",
 	"compatibility_date": "2025-05-07",
+    "compatibility_flags": ["nodejs_compat"],
 	"observability": {
 		"enabled": true
+	},
+	"route": {
+		"pattern": "infinitysupport.heathcotetech.com.au/api/contact",
+		"zone_name": "heathcotetech.com.au"
 	}
 	/**
 	 * Smart Placement
