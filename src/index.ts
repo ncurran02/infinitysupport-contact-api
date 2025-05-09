@@ -4,6 +4,17 @@ import { Env } from './env';
 
 export default {
 	async fetch(request, env: Env, ctx): Promise<Response> {
+		const origin = request.headers.get('origin');
+		if (origin && origin !== 'https://infinitysupport.heathcotetech.com.au') {
+			return new Response(
+                JSON.stringify({message: "Invalid Origin"}),
+                {
+                    status: 403,
+                    headers: {"Content-Type": "application/json"},
+                }
+            );
+		}
+
 		if (request.method === 'POST') {
 			const response = await request.json() as {
 				name: string;
