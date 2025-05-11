@@ -119,7 +119,7 @@ export default {
 
 
 			const { name, email, phone, message, partcipant, services, coordinator, plan, ndis, days, type } = response;
-			if ((type === "contact" && (!name || !email || !phone || !message)) || (type === "referral" && (!partcipant || !services || !coordinator || !plan || !ndis || !days))) {
+			if ((type === "contact" && (!name || !email || !phone || !message))) {
 				return new Response(JSON.stringify({
 					message: "Missing required fields"
 				}), {
