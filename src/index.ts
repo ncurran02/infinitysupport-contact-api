@@ -16,7 +16,7 @@ export default {
 		}
 
 		if (request.method === 'POST') {
-			interface participant {
+			interface participantDetails {
 				name: string;
 				email: string;
 				phone: string;
@@ -78,7 +78,7 @@ export default {
 				email: string;
 				phone: string;
 				message:string;
-				partcipant: participant;
+				participant: participantDetails;
 				services: services;
 				coordinator: coordinator;
 				plan: plan;
@@ -118,7 +118,7 @@ export default {
 			}
 
 
-			const { name, email, phone, message, partcipant, services, coordinator, plan, ndis, days, type } = response;
+			const { name, email, phone, message, participant, services, coordinator, plan, ndis, days, type } = response;
 			if ((type === "contact" && (!name || !email || !phone || !message))) {
 				return new Response(JSON.stringify({
 					message: "Missing required fields"
@@ -136,7 +136,7 @@ export default {
 				subject = `Contact Form Submission from ${name}`;
 				body = `Name: ${name}\nEmail: ${email}\nPhone: ${phone}\nMessage: ${message}`;
 			} else if (type === "referral") {
-				const { name, email, phone, dob, disability, behaviour } = partcipant;
+				const { name, email, phone, dob, disability, behaviour } = participant;
 				const { support, community, allied, accomodation } = services;
 				const { name: coordinatorName, email: coordinatorEmail, phone: coordinatorPhone, company } = coordinator;
 				const { name: planName, email: planEmail, type: planType } = plan;
@@ -162,13 +162,13 @@ export default {
 					.map(([key]) => key.charAt(0).toUpperCase() + key.slice(1))
 					.join(", ");
 
-				const partcipantDetails = `Name: ${name}\nEmail: ${email}\nPhone: ${phone}\nDate of Birth: ${dob}\nPrimary Disability: ${disability}\nPotential Risks/Behaviour Concerns: ${behaviour}`;
+				const participantDetailsString = `Name: ${name}\nEmail: ${email}\nPhone: ${phone}\nDate of Birth: ${dob}\nPrimary Disability: ${disability}\nPotential Risks/Behaviour Concerns: ${behaviour}`;
 				const servicesDetails = `Services Requested: ${requiredServices}`;
 				const coordinatorDetails = `Name: ${coordinatorName}\nEmail: ${coordinatorEmail}\nPhone: ${coordinatorPhone}\nCompany: ${company}`;
 				const planDetails = `Name: ${planName}\nEmail: ${planEmail}\nPlan Type: ${planType}`;
 				const ndisDetails = `NDIS Number: ${ndisNumber}\nStart Date: ${startDate}\nEnd Date: ${endDate}`;
 
-				body = `Partcipant Details:\n${partcipantDetails}\n\nServices Details:\n${servicesDetails}\n\nCoordinator Details:\n${coordinatorDetails}\n\nPlan Manager Details:\n${planDetails}\n\nNDIS Details:\n${ndisDetails}\n\nPreferred Support Days:\n${daysOfWeek}`;
+				body = `Participant Details:\n${participantDetailsString}\n\nServices Details:\n${servicesDetails}\n\nCoordinator Details:\n${coordinatorDetails}\n\nPlan Manager Details:\n${planDetails}\n\nNDIS Details:\n${ndisDetails}\n\nPreferred Support Days:\n${daysOfWeek}`;
 			} else {
 				return new Response(JSON.stringify({
 					message: `Invalid form type: ${type}`
