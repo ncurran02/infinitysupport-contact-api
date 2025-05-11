@@ -140,6 +140,7 @@ export default {
 				const { support, community, allied, accomodation } = services;
 				const { name: coordinatorName, email: coordinatorEmail, phone: coordinatorPhone, company } = coordinator;
 				const { name: planName, email: planEmail, type: planType } = plan;
+				const { ndia, selfManaged, planManaged } = plan.type;
 				const { ndisNumber, startDate, endDate } = ndis;
 				const { monday, tuesday, wednesday, thursday, friday, saturday, sunday } = days;
 
@@ -162,10 +163,19 @@ export default {
 					.map(([key]) => key.charAt(0).toUpperCase() + key.slice(1))
 					.join(", ");
 
+				let planTypeString = "";
+				if (ndia) {
+					planTypeString = "NDIA";
+				} else if (selfManaged) {
+					planTypeString = "Self Managed";
+				} else if (planManaged) {
+					planTypeString = "Plan Managed";
+				}
+
 				const participantDetailsString = `Name: ${name}\nEmail: ${email}\nPhone: ${phone}\nDate of Birth: ${dob}\nPrimary Disability: ${disability}\nPotential Risks/Behaviour Concerns: ${behaviour}`;
 				const servicesDetails = `Services Requested: ${requiredServices}`;
 				const coordinatorDetails = `Name: ${coordinatorName}\nEmail: ${coordinatorEmail}\nPhone: ${coordinatorPhone}\nCompany: ${company}`;
-				const planDetails = `Name: ${planName}\nEmail: ${planEmail}\nPlan Type: ${planType}`;
+				const planDetails = `Name: ${planName}\nEmail: ${planEmail}\nPlan Type: ${planTypeString}`;
 				const ndisDetails = `NDIS Number: ${ndisNumber}\nStart Date: ${startDate}\nEnd Date: ${endDate}`;
 
 				body = `Participant Details:\n${participantDetailsString}\n\nServices Details:\n${servicesDetails}\n\nCoordinator Details:\n${coordinatorDetails}\n\nPlan Manager Details:\n${planDetails}\n\nNDIS Details:\n${ndisDetails}\n\nPreferred Support Days:\n${daysOfWeek}`;
