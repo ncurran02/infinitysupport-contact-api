@@ -20,10 +20,22 @@ export default {
 				name: string;
 				email: string;
 				phone: string;
+				dob: string;
+				disability: string;
+				behaviour: string;
+				support: string;
+				community: string;
+				allied: string;
+				accomodation: string;
 				message: string;
+				type: string;
+				attachment: {
+					name: string;
+					contentType: string;
+					contentBytes: string;
+				};
 				'cf-turnstile-response': string;
 			};
-			const { name, email, phone, message } = response;
 
 			const token = response['cf-turnstile-response'];
     		const remote_ip = request.headers.get('cf-connecting-ip');
@@ -53,7 +65,9 @@ export default {
 				});
 			}
 
-			if (!name || !email || !phone || !message) {
+
+			const { name, email, phone, dob, disability, behaviour, support, community, allied, accomodation, message, type } = response;
+			if ((type === "contact" && (!name || !email || !phone || !message)) || (type === "referral" && (!name || !email || !phone || !dob || !disability || !behaviour))) {
 				return new Response(JSON.stringify({
 					message: "Missing required fields"
 				}), {
@@ -64,9 +78,42 @@ export default {
 				});
 			}
 
+			let subject: string = "";
+			let body: string = "";
+			if (type === "contact") {
+				subject = `Contact Form Submission from ${name}`;
+				body = `Name: ${name}\nEmail: ${email}\nPhone: ${phone}\nMessage: ${message}`;
+			} else if (type === "referral") {
+				subject = `Referral Form Submission for ${name}`;
+				
+				const serviceLabels: Record<string, string> = {
+					support: "Support Coordination",
+					community: "Community Access",
+					allied: "Allied Health Assistants",
+					accomodation: "Accomodation",
+				}
+				const requiredServices = [support, community, allied, accomodation].filter(service => service === "on").map(service => serviceLabels[service]).join(",");
+				
+				body = `Name: ${name}\nEmail: ${email}\nPhone: ${phone}\nDate of Birth: ${dob}\nPrimary Disability: ${disability}\nPotential Risks/Behaviour Concerns: ${behaviour}\nServices Requested: ${requiredServices}`;
+			} else {
+				return new Response(JSON.stringify({
+					message: `Invalid form type: ${type}`
+				}), {
+					status: 400,
+					headers: {
+						"Content-Type": "application/json",
+					}
+				});
+			}
+
+			const attachment = response.attachment ? {
+				...response.attachment,
+				"@odata.type": "#microsoft.graph.fileAttachment",
+			} : null;
+
 			try {
 				const client = await getClient(env.MICROSOFT_GRAPH_CLIENT_ID, env.MICROSOFT_GRAPH_TENANT_ID, env.MICROSOFT_GRAPH_CLIENT_SECRET);
-				await sendEmail(client, name, email, phone, message);
+				await sendEmail(client, subject, body, attachment);
 			} catch (error) {
 				return new Response(JSON.stringify({
 					message: `Unable to send an email...\n${error}`
@@ -118,13 +165,13 @@ async function getClient(MICROSOFT_GRAPH_CLIENT_ID: string, MICROSOFT_GRAPH_TENA
     return client;
 }
 
-export async function sendEmail(client: Client, name: string, email_address: string, phone: string, message: string) {
+export async function sendEmail(client: Client, subject: string, message: string, attachment: { "@odata.type": string, name: string; contentType: string; contentBytes: string } | null) {
 	const email = {
 		message: {
-			subject: `Contact Form Submission from ${name}`,
+			subject: subject,
 			body: {
 				contentType: "Text",
-				content: `Name: ${name}\nEmail: ${email_address}\nPhone: ${phone}\nMessage: ${message}`
+				content: message
 			},
 			toRecipients: [
 				{
@@ -132,7 +179,8 @@ export async function sendEmail(client: Client, name: string, email_address: str
 						address: "nathan@heathcotetech.com.au"
 					}
 				}
-			]
+			],
+			...(attachment !== null ? { attachments: [attachment] } : {}),
 		},
 		saveToSentItems: false
 	};
