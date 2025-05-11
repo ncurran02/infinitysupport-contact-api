@@ -143,7 +143,7 @@ export default {
 				const { ndisNumber, startDate, endDate } = ndis;
 				const { monday, tuesday, wednesday, thursday, friday, saturday, sunday } = days;
 
-				subject = `Referral Form Submission for ${partcipant.name}`;
+				subject = `Referral Form Submission for ${name}`;
 				
 				const serviceLabels: Record<string, string> = {
 					support: "Support Coordination",
