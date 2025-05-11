@@ -16,24 +16,76 @@ export default {
 		}
 
 		if (request.method === 'POST') {
-			const response = await request.json() as {
+			interface participant {
 				name: string;
 				email: string;
 				phone: string;
 				dob: string;
 				disability: string;
 				behaviour: string;
-				support: string;
-				community: string;
-				allied: string;
-				accomodation: string;
-				message: string;
+			};
+
+			interface services {
+				support: boolean;
+				community: boolean;
+				allied: boolean;
+				accomodation: boolean;
+			}
+
+			interface coordinator {
+				name: string;
+				email: string;
+				phone: string;
+				company: string;
+			}
+
+			interface type {
+				ndia: boolean;
+				selfManaged: boolean;
+				planManaged: boolean;
+			}
+
+			interface plan {
+				name: string;
+				email: string;
+				type: type;
+			}
+
+			interface ndis {
+				ndisNumber: string;
+				startDate: string;
+				endDate: string;
+			}
+
+			interface days {
+				monday: boolean;
+				tuesday: boolean;
+				wednesday: boolean;
+				thursday: boolean;
+				friday: boolean;
+				saturday: boolean;
+				sunday: boolean;
+			}
+
+			interface attachment {
+				name: string;
+				contentType: string;
+				contentBytes: string;
+			}
+
+			const response = await request.json() as {
+				name: string;
+				email: string;
+				phone: string;
+				message:string;
+				partcipant: participant;
+				services: services;
+				coordinator: coordinator;
+				plan: plan;
+				ndis: ndis;
+				days: days;
+				attachment: attachment;
 				type: string;
-				attachment: {
-					name: string;
-					contentType: string;
-					contentBytes: string;
-				};
 				'cf-turnstile-response': string;
 			};
 
@@ -66,8 +118,8 @@ export default {
 			}
 
 
-			const { name, email, phone, dob, disability, behaviour, support, community, allied, accomodation, message, type } = response;
-			if ((type === "contact" && (!name || !email || !phone || !message)) || (type === "referral" && (!name || !email || !phone || !dob || !disability || !behaviour))) {
+			const { name, email, phone, message, partcipant, services, coordinator, plan, ndis, days, type } = response;
+			if ((type === "contact" && (!name || !email || !phone || !message)) || (type === "referral" && (!partcipant || !services || !coordinator || !plan || !ndis || !days))) {
 				return new Response(JSON.stringify({
 					message: "Missing required fields"
 				}), {
@@ -84,7 +136,14 @@ export default {
 				subject = `Contact Form Submission from ${name}`;
 				body = `Name: ${name}\nEmail: ${email}\nPhone: ${phone}\nMessage: ${message}`;
 			} else if (type === "referral") {
-				subject = `Referral Form Submission for ${name}`;
+				const { name, email, phone, dob, disability, behaviour } = partcipant;
+				const { support, community, allied, accomodation } = services;
+				const { name: coordinatorName, email: coordinatorEmail, phone: coordinatorPhone, company } = coordinator;
+				const { name: planName, email: planEmail, type: planType } = plan;
+				const { ndisNumber, startDate, endDate } = ndis;
+				const { monday, tuesday, wednesday, thursday, friday, saturday, sunday } = days;
+
+				subject = `Referral Form Submission for ${partcipant.name}`;
 				
 				const serviceLabels: Record<string, string> = {
 					support: "Support Coordination",
@@ -92,9 +151,24 @@ export default {
 					allied: "Allied Health Assistants",
 					accomodation: "Accomodation",
 				}
-				const requiredServices = [support, community, allied, accomodation].filter(service => service === "on").map(service => serviceLabels[service]).join(",");
 				
-				body = `Name: ${name}\nEmail: ${email}\nPhone: ${phone}\nDate of Birth: ${dob}\nPrimary Disability: ${disability}\nPotential Risks/Behaviour Concerns: ${behaviour}\nServices Requested: ${requiredServices}`;
+				const requiredServices = Object.entries({support, community, allied, accomodation})
+					.filter(([_key, value]) => value === true)
+					.map(([key]) => serviceLabels[key])
+					.join(", ");
+				
+				const daysOfWeek = Object.entries({monday, tuesday, wednesday, thursday, friday, saturday, sunday})
+					.filter(([_key, value]) => value === true)
+					.map(([key]) => key.charAt(0).toUpperCase() + key.slice(1))
+					.join(", ");
+
+				const partcipantDetails = `Name: ${name}\nEmail: ${email}\nPhone: ${phone}\nDate of Birth: ${dob}\nPrimary Disability: ${disability}\nPotential Risks/Behaviour Concerns: ${behaviour}`;
+				const servicesDetails = `Services Requested: ${requiredServices}`;
+				const coordinatorDetails = `Name: ${coordinatorName}\nEmail: ${coordinatorEmail}\nPhone: ${coordinatorPhone}\nCompany: ${company}`;
+				const planDetails = `Name: ${planName}\nEmail: ${planEmail}\nPlan Type: ${planType}`;
+				const ndisDetails = `NDIS Number: ${ndisNumber}\nStart Date: ${startDate}\nEnd Date: ${endDate}`;
+
+				body = `Partcipant Details:\n${partcipantDetails}\n\nServices Details:\n${servicesDetails}\n\nCoordinator Details:\n${coordinatorDetails}\n\nPlan Manager Details:\n${planDetails}\n\nNDIS Details:\n${ndisDetails}\n\nPreferred Support Days:\n${daysOfWeek}`;
 			} else {
 				return new Response(JSON.stringify({
 					message: `Invalid form type: ${type}`
