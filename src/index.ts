@@ -84,7 +84,7 @@ export default {
 				plan: plan;
 				ndis: ndis;
 				days: days;
-				attachment: attachment;
+				attachments: attachment[];
 				type: string;
 				'cf-turnstile-response': string;
 			};
@@ -190,14 +190,17 @@ export default {
 				});
 			}
 
-			const attachment = response.attachment ? {
-				...response.attachment,
-				"@odata.type": "#microsoft.graph.fileAttachment",
-			} : null;
+			const fileAttachments = [];
+			for (const attachment of response.attachments) {
+				fileAttachments.push({
+					...attachment,
+					"@odata.type": "#microsoft.graph.fileAttachment",
+				});
+			}
 
 			try {
 				const client = await getClient(env.MICROSOFT_GRAPH_CLIENT_ID, env.MICROSOFT_GRAPH_TENANT_ID, env.MICROSOFT_GRAPH_CLIENT_SECRET);
-				await sendEmail(client, subject, body, attachment);
+				await sendEmail(client, subject, body, fileAttachments);
 			} catch (error) {
 				return new Response(JSON.stringify({
 					message: `Unable to send an email...\n${error}`
@@ -249,7 +252,7 @@ async function getClient(MICROSOFT_GRAPH_CLIENT_ID: string, MICROSOFT_GRAPH_TENA
     return client;
 }
 
-export async function sendEmail(client: Client, subject: string, message: string, attachment: { "@odata.type": string, name: string; contentType: string; contentBytes: string } | null) {
+export async function sendEmail(client: Client, subject: string, message: string, fileAttachments: { "@odata.type": string, name: string; contentType: string; contentBytes: string }[] | null) {
 	const email = {
 		message: {
 			subject: subject,
@@ -264,7 +267,7 @@ export async function sendEmail(client: Client, subject: string, message: string
 					}
 				}
 			],
-			...(attachment !== null ? { attachments: [attachment] } : {}),
+			...(fileAttachments !== null && fileAttachments.length > 0 ? { attachments: fileAttachments } : {}),
 		},
 		saveToSentItems: false
 	};
