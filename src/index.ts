@@ -39,16 +39,10 @@ export default {
 				company: string;
 			}
 
-			interface type {
-				ndia: boolean;
-				selfManaged: boolean;
-				planManaged: boolean;
-			}
-
 			interface plan {
 				name: string;
 				email: string;
-				type: type;
+				type: string;
 			}
 
 			interface ndis {
@@ -140,7 +134,7 @@ export default {
 				const { support, community, allied, accomodation } = services;
 				const { name: coordinatorName, email: coordinatorEmail, phone: coordinatorPhone, company } = coordinator;
 				const { name: planName, email: planEmail, type: planType } = plan;
-				const { ndia, selfManaged, planManaged } = plan.type;
+				const plantype = plan.type;
 				const { ndisNumber, startDate, endDate } = ndis;
 				const { monday, tuesday, wednesday, thursday, friday, saturday, sunday } = days;
 
@@ -164,11 +158,11 @@ export default {
 					.join(", ");
 
 				let planTypeString = "";
-				if (ndia) {
+				if (plantype === "ndia") {
 					planTypeString = "NDIA";
-				} else if (selfManaged) {
+				} else if (plantype === "self-managed") {
 					planTypeString = "Self Managed";
-				} else if (planManaged) {
+				} else if (plantype === "plan-managed") {
 					planTypeString = "Plan Managed";
 				}
 
