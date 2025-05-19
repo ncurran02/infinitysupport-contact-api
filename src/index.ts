@@ -270,5 +270,5 @@ export async function sendEmail(client: Client, sender: string, subject: string,
 		saveToSentItems: false
 	};
 
-	await client.api(`/users/${sender}}/sendMail`).post(email);
+	await client.api(`/users/${sender}/sendMail`).post(email);
 }
