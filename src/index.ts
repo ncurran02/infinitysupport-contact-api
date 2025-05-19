@@ -194,7 +194,7 @@ export default {
 
 			try {
 				const client = await getClient(env.MICROSOFT_GRAPH_CLIENT_ID, env.MICROSOFT_GRAPH_TENANT_ID, env.MICROSOFT_GRAPH_CLIENT_SECRET);
-				await sendEmail(client, subject, body, fileAttachments);
+				await sendEmail(client, env.MICROSOFT_GRAPH_SENDER_EMAIL, subject, body, fileAttachments);
 			} catch (error) {
 				return new Response(JSON.stringify({
 					message: `Unable to send an email...\n${error}`
@@ -246,7 +246,11 @@ async function getClient(MICROSOFT_GRAPH_CLIENT_ID: string, MICROSOFT_GRAPH_TENA
     return client;
 }
 
-export async function sendEmail(client: Client, subject: string, message: string, fileAttachments: { "@odata.type": string, name: string; contentType: string; contentBytes: string }[] | null) {
+export async function sendEmail(client: Client, sender: string, subject: string, message: string, fileAttachments: { "@odata.type": string, name: string; contentType: string; contentBytes: string }[] | null) {
+	if (!sender) {
+		throw new Error("Missing sender email address");
+	}
+	
 	const email = {
 		message: {
 			subject: subject,
@@ -257,7 +261,7 @@ export async function sendEmail(client: Client, subject: string, message: string
 			toRecipients: [
 				{
 					emailAddress: {
-						address: "nathan@heathcotetech.com.au"
+						address: sender
 					}
 				}
 			],
@@ -266,5 +270,5 @@ export async function sendEmail(client: Client, subject: string, message: string
 		saveToSentItems: false
 	};
 
-	await client.api('/users/nathan@heathcotetech.com.au/sendMail').post(email);
+	await client.api(`/users/${sender}}/sendMail`).post(email);
 }
