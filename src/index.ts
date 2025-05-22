@@ -166,7 +166,7 @@ export default {
 					planTypeString = "Plan Managed";
 				}
 
-				const participantDetailsString = `Name: ${name}\nEmail: ${email}\nPhone: ${phone}\nDate of Birth: ${dob}\nPrimary Disability: ${disability}\nPotential Risks/Behaviour Concerns: ${behaviour}`;
+				const participantDetailsString = `Name: ${name}\nEmail: ${email}\nPhone: ${phone}\nDate of Birth: ${dob}\nPrimary Disability: ${disability}\nPotential Risks/Behaviour Concerns: ${behaviour == null ? "N/A" : behaviour}`;
 				const servicesDetails = `Services Requested: ${requiredServices}`;
 				const coordinatorDetails = `Name: ${coordinatorName}\nEmail: ${coordinatorEmail}\nPhone: ${coordinatorPhone}\nCompany: ${company}`;
 				const planDetails = `Name: ${planName}\nEmail: ${planEmail}\nPlan Type: ${planTypeString}`;
@@ -194,7 +194,7 @@ export default {
 
 			try {
 				const client = await getClient(env.MICROSOFT_GRAPH_CLIENT_ID, env.MICROSOFT_GRAPH_TENANT_ID, env.MICROSOFT_GRAPH_CLIENT_SECRET);
-				await sendEmail(client, env.MICROSOFT_GRAPH_SENDER_EMAIL, subject, body, fileAttachments);
+				await sendEmail(client, env.MICROSOFT_GRAPH_SENDER_EMAIL, env.MICROSOFT_GRAPH_TO_EMAIL, subject, body, fileAttachments);
 			} catch (error) {
 				return new Response(JSON.stringify({
 					message: `Unable to send an email...\n${error}`
@@ -246,7 +246,7 @@ async function getClient(MICROSOFT_GRAPH_CLIENT_ID: string, MICROSOFT_GRAPH_TENA
     return client;
 }
 
-export async function sendEmail(client: Client, sender: string, subject: string, message: string, fileAttachments: { "@odata.type": string, name: string; contentType: string; contentBytes: string }[] | null) {
+export async function sendEmail(client: Client, sender: string, to: string, subject: string, message: string, fileAttachments: { "@odata.type": string, name: string; contentType: string; contentBytes: string }[] | null) {
 	if (!sender) {
 		throw new Error("Missing sender email address");
 	}
@@ -261,7 +261,7 @@ export async function sendEmail(client: Client, sender: string, subject: string,
 			toRecipients: [
 				{
 					emailAddress: {
-						address: sender
+						address: to
 					}
 				}
 			],
