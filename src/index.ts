@@ -119,11 +119,13 @@ export default {
 			}
 
 			const fileAttachments = [];
-			for (const attachment of response.attachments) {
-				fileAttachments.push({
-					...attachment,
-					"@odata.type": "#microsoft.graph.fileAttachment",
-				});
+			if (response.attachments && response.attachments.length > 0) {
+				for (const attachment of response.attachments) {
+					fileAttachments.push({
+						...attachment,
+						"@odata.type": "#microsoft.graph.fileAttachment",
+					});
+				}
 			}
 
 			try {
