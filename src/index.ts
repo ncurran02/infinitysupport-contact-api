@@ -5,7 +5,7 @@ import { Env } from './env';
 export default {
 	async fetch(request, env: Env, ctx): Promise<Response> {
 		const origin = request.headers.get('origin');
-		if (origin && origin !== 'https://infinitysupport.heathcotetech.com.au') {
+		if (origin && (env.ORIGIN && origin !== env.ORIGIN)) {
 			return new Response(
                 JSON.stringify({message: "Invalid Origin"}),
                 {
@@ -16,72 +16,7 @@ export default {
 		}
 
 		if (request.method === 'POST') {
-			interface participantDetails {
-				name: string;
-				email: string;
-				phone: string;
-				dob: string;
-				disability: string;
-				behaviour: string;
-			};
-
-			interface services {
-				support: boolean;
-				community: boolean;
-				allied: boolean;
-				accomodation: boolean;
-			}
-
-			interface coordinator {
-				name: string;
-				email: string;
-				phone: string;
-				company: string;
-			}
-
-			interface plan {
-				name: string;
-				email: string;
-				type: string;
-			}
-
-			interface ndis {
-				ndisNumber: string;
-				startDate: string;
-				endDate: string;
-			}
-
-			interface days {
-				monday: boolean;
-				tuesday: boolean;
-				wednesday: boolean;
-				thursday: boolean;
-				friday: boolean;
-				saturday: boolean;
-				sunday: boolean;
-			}
-
-			interface attachment {
-				name: string;
-				contentType: string;
-				contentBytes: string;
-			}
-
-			const response = await request.json() as {
-				name: string;
-				email: string;
-				phone: string;
-				message:string;
-				participant: participantDetails;
-				services: services;
-				coordinator: coordinator;
-				plan: plan;
-				ndis: ndis;
-				days: days;
-				attachments: attachment[];
-				type: string;
-				'cf-turnstile-response': string;
-			};
+			const response = await request.json() as contact_response;
 
 			const token = response['cf-turnstile-response'];
     		const remote_ip = request.headers.get('cf-connecting-ip');
@@ -134,7 +69,6 @@ export default {
 				const { support, community, allied, accomodation } = services;
 				const { name: coordinatorName, email: coordinatorEmail, phone: coordinatorPhone, company } = coordinator;
 				const { name: planName, email: planEmail, type: planType } = plan;
-				const plantype = plan.type;
 				const { ndisNumber, startDate, endDate } = ndis;
 				const { monday, tuesday, wednesday, thursday, friday, saturday, sunday } = days;
 
@@ -158,11 +92,11 @@ export default {
 					.join(", ");
 
 				let planTypeString = "";
-				if (plantype === "ndia") {
+				if (planType === "ndia") {
 					planTypeString = "NDIA";
-				} else if (plantype === "self-managed") {
+				} else if (planType === "self-managed") {
 					planTypeString = "Self Managed";
-				} else if (plantype === "plan-managed") {
+				} else if (planType === "plan-managed") {
 					planTypeString = "Plan Managed";
 				}
 
@@ -193,8 +127,8 @@ export default {
 			}
 
 			try {
-				const client = await getClient(env.MICROSOFT_GRAPH_CLIENT_ID, env.MICROSOFT_GRAPH_TENANT_ID, env.MICROSOFT_GRAPH_CLIENT_SECRET);
-				await sendEmail(client, env.MICROSOFT_GRAPH_SENDER_EMAIL, env.MICROSOFT_GRAPH_TO_EMAIL, subject, body, fileAttachments);
+				const client = await getClient(env);
+				await sendEmail(client, env, subject, body, fileAttachments);
 			} catch (error) {
 				return new Response(JSON.stringify({
 					message: `Unable to send an email...\n${error}`
@@ -219,21 +153,21 @@ export default {
 		return new Response(null, {
 			status: 302,
 			headers: {
-			  Location: 'https://infinitysupport.heathcotetech.com.au/'
+			  Location: (env.REDIRECTION_URL ? env.REDIRECTION_URL : env.ORIGIN),
 			}
 		  });
 	},
 } satisfies ExportedHandler<Env>;
 
-async function getClient(MICROSOFT_GRAPH_CLIENT_ID: string, MICROSOFT_GRAPH_TENANT_ID: string, MICROSOFT_GRAPH_CLIENT_SECRET: string) {
-    if (!MICROSOFT_GRAPH_CLIENT_ID || !MICROSOFT_GRAPH_TENANT_ID || !MICROSOFT_GRAPH_CLIENT_SECRET) {
+async function getClient(env: Env) {
+    if (!env.MICROSOFT_GRAPH_CLIENT_ID || !env.MICROSOFT_GRAPH_TENANT_ID || !env.MICROSOFT_GRAPH_CLIENT_SECRET) {
         throw new Error("Missing Microsoft Graph credentials");
     }
     
     const credentials = new ClientSecretCredential(
-        MICROSOFT_GRAPH_TENANT_ID,
-        MICROSOFT_GRAPH_CLIENT_ID,
-        MICROSOFT_GRAPH_CLIENT_SECRET
+        env.MICROSOFT_GRAPH_TENANT_ID,
+        env.MICROSOFT_GRAPH_CLIENT_ID,
+        env.MICROSOFT_GRAPH_CLIENT_SECRET
     );
     
     const token = await credentials.getToken("https://graph.microsoft.com/.default");
@@ -246,9 +180,9 @@ async function getClient(MICROSOFT_GRAPH_CLIENT_ID: string, MICROSOFT_GRAPH_TENA
     return client;
 }
 
-export async function sendEmail(client: Client, sender: string, to: string, subject: string, message: string, fileAttachments: { "@odata.type": string, name: string; contentType: string; contentBytes: string }[] | null) {
-	if (!sender) {
-		throw new Error("Missing sender email address");
+export async function sendEmail(client: Client, env: Env, subject: string, message: string, fileAttachments: { "@odata.type": string, name: string; contentType: string; contentBytes: string }[] | null) {
+	if (!env.MICROSOFT_GRAPH_SENDER_EMAIL || !env.MICROSOFT_GRAPH_TO_EMAIL) {
+		throw new Error("Missing sender and/or recipient email address");
 	}
 	
 	const email = {
@@ -261,7 +195,7 @@ export async function sendEmail(client: Client, sender: string, to: string, subj
 			toRecipients: [
 				{
 					emailAddress: {
-						address: to
+						address: env.MICROSOFT_GRAPH_TO_EMAIL
 					}
 				}
 			],
@@ -270,5 +204,5 @@ export async function sendEmail(client: Client, sender: string, to: string, subj
 		saveToSentItems: false
 	};
 
-	await client.api(`/users/${sender}/sendMail`).post(email);
+	await client.api(`/users/${env.MICROSOFT_GRAPH_SENDER_EMAIL}/sendMail`).post(email);
 }

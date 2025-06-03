@@ -34,7 +34,9 @@
 	 */
 	"vars": { 
 		"MICROSOFT_GRAPH_SENDER_EMAIL": "nathan@heathcotetech.com.au",
-		"MICROSOFT_GRAPH_TO_EMAIL": "nathan@heathcotetech.com.au"
+		"MICROSOFT_GRAPH_TO_EMAIL": "nathan@heathcotetech.com.au",
+		"ORIGIN": "https://infinitysupport.heathcotetech.com.au",
+		"REDIRECTION_URL": "https://infinitysupport.heathcotetech.com.au"
 	},
 	/**
 	 * Note: Use secrets to store sensitive data.
