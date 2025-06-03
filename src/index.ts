@@ -1,6 +1,6 @@
 import { Client } from "@microsoft/microsoft-graph-client";
-import { ClientSecretCredential } from "@azure/identity";
 import { Env } from './env';
+import { URLSearchParams } from "url";
 
 export default {
 	async fetch(request, env: Env, ctx): Promise<Response> {
@@ -161,21 +161,44 @@ export default {
 	},
 } satisfies ExportedHandler<Env>;
 
-async function getClient(env: Env) {
-    if (!env.MICROSOFT_GRAPH_CLIENT_ID || !env.MICROSOFT_GRAPH_TENANT_ID || !env.MICROSOFT_GRAPH_CLIENT_SECRET) {
+async function getAccessToken(env: Env): Promise<string> {
+	if (!env.MICROSOFT_GRAPH_CLIENT_ID || !env.MICROSOFT_GRAPH_TENANT_ID || !env.MICROSOFT_GRAPH_CLIENT_SECRET) {
         throw new Error("Missing Microsoft Graph credentials");
     }
-    
-    const credentials = new ClientSecretCredential(
-        env.MICROSOFT_GRAPH_TENANT_ID,
-        env.MICROSOFT_GRAPH_CLIENT_ID,
-        env.MICROSOFT_GRAPH_CLIENT_SECRET
-    );
-    
-    const token = await credentials.getToken("https://graph.microsoft.com/.default");
+
+	const url = `https://login.microsoftonline.com/${env.MICROSOFT_GRAPH_TENANT_ID}/oauth2/v2.0/token`;
+	const body = new URLSearchParams({
+		client_id: env.MICROSOFT_GRAPH_CLIENT_ID,
+		client_secret: env.MICROSOFT_GRAPH_CLIENT_SECRET,
+		scope: "https://graph.microsoft.com/.default",
+		grant_type: "client_credentials"
+	});
+
+	const response = await fetch(url, {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/x-www-form-urlencoded',
+		},
+		body: body.toString()
+	});
+
+	if (!response.ok) {
+		throw new Error(`Failed to get access token: ${response.statusText}`);
+	}
+
+	const data = await response.json() as { access_token?: string };
+	if (!data.access_token) {
+		throw new Error("Access token not found in response");
+	}
+
+	return data.access_token;
+}
+
+async function getClient(env: Env) {
+    const token = await getAccessToken(env);
     const client = Client.init({
         authProvider: (done) => {
-            done(null, token?.token ?? "")
+            done(null, token)
         }
     });
     
