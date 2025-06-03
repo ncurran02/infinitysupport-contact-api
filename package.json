@@ -18,8 +18,5 @@
 	},
 	"dependencies": {
 		"@microsoft/microsoft-graph-client": "^3.0.7"
-	},
-	"overrides": {
-		"@azure/core-rest-pipeline": "1.11.1"
 	}
 }
